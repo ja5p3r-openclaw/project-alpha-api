@@ -199,11 +199,14 @@
 
     <script>
         const API_BASE = window.location.origin;
+        const GUEST_KEY = "ALPHA_GUEST_KEY";
 
         async function updateDashboard() {
             try {
                 // Forex
-                const fxRes = await fetch(`${API_BASE}/api/v1/forex/usd-inr`);
+                const fxRes = await fetch(`${API_BASE}/api/v1/forex/usd-inr`, {
+                    headers: { 'X-API-Key': GUEST_KEY }
+                });
                 const fxData = await fxRes.json();
                 if (fxData.status === 'success') {
                     document.getElementById('forex-content').innerHTML = `
@@ -213,7 +216,9 @@
                 }
 
                 // Mandi
-                const mandiRes = await fetch(`${API_BASE}/api/v1/mandi/snapshot`);
+                const mandiRes = await fetch(`${API_BASE}/api/v1/mandi/snapshot`, {
+                    headers: { 'X-API-Key': GUEST_KEY }
+                });
                 const mandiData = await mandiRes.json();
                 if (mandiData.status === 'success') {
                     const trends = ['↑', '↓', '↔'];
@@ -241,14 +246,26 @@
             resDiv.innerHTML = 'Verifying...';
             
             try {
-                const res = await fetch(`${API_BASE}/api/v1/gst/verify/${gstin}`);
+                // Note: The Guest key only has FREE access. We need a higher key for GST.
+                // For demonstration, we'll try with the Master Key if user provides one, 
+                // but for now we'll stick to the logic.
+                const res = await fetch(`${API_BASE}/api/v1/gst/verify/${gstin}`, {
+                    headers: { 'X-API-Key': GUEST_KEY }
+                });
                 const data = await res.json();
+                
+                if (res.status === 402) {
+                    resDiv.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+                    resDiv.innerHTML = `UPGRADE REQUIRED: ${data.detail}`;
+                    return;
+                }
+
                 if (data.status === 'success') {
                     resDiv.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-green-500/10 text-green-400 border border-green-500/20';
                     resDiv.innerHTML = `SUCCESS: Valid GSTIN Found.<br>PAN: ${data.analysis.pan}<br>Status: ACTIVE`;
                 } else {
                     resDiv.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-red-500/10 text-red-400 border border-red-500/20';
-                    resDiv.innerHTML = `FAILED: ${data.message}`;
+                    resDiv.innerHTML = `FAILED: ${data.message || data.detail}`;
                 }
             } catch (err) { resDiv.innerHTML = 'Network Error.'; }
         }
