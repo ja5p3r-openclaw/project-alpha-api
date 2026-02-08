@@ -10,6 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.openapi.docs import get_swagger_ui_html
 import secrets
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = FastAPI(
     title="Project Alpha API",
@@ -26,17 +29,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- CONFIG ---
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD") # App Password
+
 # --- DATABASE / MODELS ---
 class LoginRequest(BaseModel):
     email: str
     otp: str = None
 
-# In-memory session store (In production use Redis)
 SESSIONS = {}
 OTPS = {} 
 
 USERS = {
-    "ja5p3r@openclaw.ai": {"name": "Jasper", "plan": "OBSIDIAN", "api_key": "MASTER_JASPER_KEY"}
+    "ja5p3r@openclaw.ai": {"name": "Jasper", "plan": "OBSIDIAN", "api_key": "MASTER_JASPER_KEY"},
+    "peterkalex10@gmail.com": {"name": "Peter", "plan": "OBSIDIAN", "api_key": "MASTER_JASPER_KEY"}
 }
 
 API_KEYS = {
@@ -46,15 +55,65 @@ API_KEYS = {
 
 PLAN_LEVELS = {"GUEST": 1, "FREE": 1, "GOLD": 2, "DIAMOND": 3, "OBSIDIAN": 4}
 
+# --- EMAIL LOGIC ---
+def send_otp_email(receiver_email, otp):
+    if not SENDER_EMAIL or not SENDER_PASSWORD:
+        print("CRITICAL: SMTP Credentials missing in Env Vars")
+        return False
+    
+    msg = MIMEMultipart()
+    msg['From'] = f"Project Alpha Security <{SENDER_EMAIL}>"
+    msg['To'] = receiver_email
+    msg['Subject'] = f"{otp} is your Alpha OS Access Code"
+
+    body = f"""
+    <html>
+    <body style="font-family: sans-serif; background-color: #f8fafc; padding: 40px;">
+        <div style="max-width: 500px; margin: auto; background: white; padding: 40px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <h1 style="color: #0ea5e9; font-size: 24px; margin-bottom: 8px;">Project Alpha</h1>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 32px;">Secure Enterprise Access</p>
+            <p style="color: #0f172a; font-size: 16px;">Your one-time access code is:</p>
+            <div style="background: #f1f5f9; padding: 24px; border-radius: 16px; font-size: 32px; font-weight: bold; text-align: center; letter-spacing: 8px; color: #0f172a; margin: 24px 0;">
+                {otp}
+            </div>
+            <p style="color: #94a3b8; font-size: 12px; line-height: 1.5;">This code will expire in 10 minutes. If you didn't request this, please ignore this email.</p>
+            <div style="border-top: 1px solid #e2e8f0; margin-top: 32px; padding-top: 24px; text-align: center;">
+                <p style="color: #cbd5e1; font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Building the future of Indian B2B data.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    msg.attach(MIMEText(body, 'html'))
+
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"SMTP Error: {e}")
+        return False
+
 # --- AUTH LOGIC ---
 @app.post("/api/v1/auth/request-otp")
 async def request_otp(req: LoginRequest):
     if req.email not in USERS:
         raise HTTPException(status_code=404, detail="User not found")
+    
     otp = str(secrets.randbelow(899999) + 100000)
     OTPS[req.email] = otp
-    print(f"DEBUG: OTP for {req.email} is {otp}") # In production, send via Email
-    return {"status": "success", "message": "OTP sent to email", "debug_otp": otp}
+    
+    # Try sending real email
+    sent = send_otp_email(req.email, otp)
+    
+    if sent:
+        return {"status": "success", "message": "OTP sent to Gmail"}
+    else:
+        # Fallback for beta testing
+        return {"status": "success", "message": "OTP generated (Local Fallback)", "debug_otp": otp}
 
 @app.post("/api/v1/auth/verify-otp")
 async def verify_otp(req: LoginRequest):
@@ -91,15 +150,17 @@ async def custom_swagger_ui_html():
         swagger_favicon_url="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>"
     )
 
+DASHBOARD_HTML = ""
+if os.path.exists("dashboard.html"):
+    with open("dashboard.html", "r") as f:
+        DASHBOARD_HTML = f.read()
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page():
-    if os.path.exists("dashboard.html"):
-        with open("dashboard.html", "r") as f: return f.read()
-    return "Dashboard file missing"
+    return DASHBOARD_HTML
 
 @app.get("/api/v1/forex/usd-inr")
 async def forex(user: dict = Depends(verify_key)):
-    # Guest can see Forex
     check_access(user['plan'], 1)
     url = "https://api.exchangerate-api.com/v4/latest/USD"
     try:
@@ -109,9 +170,8 @@ async def forex(user: dict = Depends(verify_key)):
 
 @app.get("/api/v1/mandi/snapshot")
 async def mandi_snapshot(user: dict = Depends(verify_key)):
-    # Guests CANNOT see Mandi (requires FREE or higher)
     if user['plan'] == "GUEST":
-        raise HTTPException(status_code=402, detail="Login required for Mandi data")
+        raise HTTPException(status_code=402, detail="Login required")
     return {
         "status": "success",
         "data": [{"commodity": "Wheat", "price": 2550}, {"commodity": "Rice", "price": 3200}]
