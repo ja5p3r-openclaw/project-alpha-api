@@ -68,24 +68,28 @@
         <!-- Auth View -->
         <div id="auth-screen" class="max-w-md mx-auto space-y-8 py-10">
             <div class="text-center space-y-2">
-                <h2 class="text-3xl font-extrabold">Welcome back</h2>
-                <p class="text-slate-500 dark:text-slate-400 text-sm">Enter your enterprise credentials to access Alpha OS</p>
+                <h2 id="auth-main-title" class="text-3xl font-extrabold">Welcome back</h2>
+                <p id="auth-subtitle" class="text-slate-500 dark:text-slate-400 text-sm">Enter your enterprise credentials to access Alpha OS</p>
             </div>
             
             <div class="glass p-8 rounded-3xl shadow-2xl shadow-brand-500/5 space-y-6">
                 <div id="login-fields" class="space-y-4">
                     <div id="email-group">
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">Work Email</label>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">Email Address</label>
                         <input type="email" id="email" class="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:ring-2 focus:ring-brand-500" placeholder="name@company.com">
                     </div>
                     <div id="otp-group" class="hidden animate-in fade-in slide-in-from-top-4 duration-500">
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">Access Code (OTP)</label>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">Verification Code (OTP)</label>
                         <input type="text" id="otp" class="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:ring-2 focus:ring-brand-500" placeholder="6-digit code">
-                        <p class="text-[10px] text-brand-500 mt-2 ml-1 font-semibold italic">Check your secure console for the code.</p>
+                        <p id="otp-hint" class="text-[10px] text-brand-500 mt-2 ml-1 font-semibold italic">Code sent to your inbox.</p>
                     </div>
-                    <button id="auth-btn" onclick="requestOTP()" class="btn-primary w-full py-4 rounded-2xl font-bold text-lg shadow-xl shadow-brand-500/20">Request Access</button>
+                    <button id="auth-btn" onclick="handleAuthAction()" class="btn-primary w-full py-4 rounded-2xl font-bold text-lg shadow-xl shadow-brand-500/20">Send Access Code</button>
                 </div>
                 <div id="auth-msg" class="text-center text-xs font-medium min-h-[1em]"></div>
+                
+                <div class="text-center pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button id="switch-auth-btn" onclick="toggleAuthMode()" class="text-xs font-bold text-brand-500 uppercase tracking-widest hover:underline">Create new account</button>
+                </div>
             </div>
 
             <!-- Public Market Preview -->
@@ -138,9 +142,7 @@
                             <thead class="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">
                                 <tr><th class="pb-4">Commodity</th><th class="pb-4">Location</th><th class="pb-4 text-right">Market Price</th></tr>
                             </thead>
-                            <tbody id="mandi-body" class="text-sm font-semibold">
-                                <!-- Injected -->
-                            </tbody>
+                            <tbody id="mandi-body" class="text-sm font-semibold"></tbody>
                         </table>
                     </div>
                 </div>
@@ -190,17 +192,69 @@
         const API_BASE = window.location.origin;
         const GUEST_KEY = "ALPHA_GUEST_KEY";
         let currentUser = null;
+        let isSignupMode = false;
+
+        function toggleAuthMode() {
+            isSignupMode = !isSignupMode;
+            const mainTitle = document.getElementById('auth-main-title');
+            const subtitle = document.getElementById('auth-subtitle');
+            const switchBtn = document.getElementById('switch-auth-btn');
+            const authBtn = document.getElementById('auth-btn');
+
+            if (isSignupMode) {
+                mainTitle.innerText = "Join Project Alpha";
+                subtitle.innerText = "Create an account to access the enterprise suite";
+                switchBtn.innerText = "Already have an account? Login";
+                authBtn.innerText = "Register Account";
+            } else {
+                mainTitle.innerText = "Welcome back";
+                subtitle.innerText = "Enter your enterprise credentials to access Alpha OS";
+                switchBtn.innerText = "Create new account";
+                authBtn.innerText = "Send Access Code";
+            }
+            
+            document.getElementById('email-group').classList.remove('hidden');
+            document.getElementById('otp-group').classList.add('hidden');
+            document.getElementById('auth-msg').innerText = "";
+        }
+
+        async function handleAuthAction() {
+            if (isSignupMode) await requestSignup();
+            else await requestOTP();
+        }
+
+        async function requestSignup() {
+            const email = document.getElementById('email').value;
+            const msg = document.getElementById('auth-msg');
+            const btn = document.getElementById('auth-btn');
+            if(!email.includes('@')) { msg.innerText = "Valid email required"; return; }
+            
+            btn.innerText = "Registering...";
+            const res = await fetch('/api/v1/auth/signup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            
+            if (res.status === 200) {
+                document.getElementById('email-group').classList.add('hidden');
+                document.getElementById('otp-group').classList.remove('hidden');
+                btn.innerText = "Verify & Create";
+                btn.onclick = verifyOTP;
+                msg.className = "text-center text-xs font-bold text-brand-500";
+                msg.innerText = "Verification code sent to Gmail.";
+                console.log("OTP (BETA):", data.debug_otp);
+            } else { msg.innerText = data.detail || "Signup failed."; btn.innerText = "Register Account"; }
+        }
 
         async function requestOTP() {
             const email = document.getElementById('email').value;
             const btn = document.getElementById('auth-btn');
             const msg = document.getElementById('auth-msg');
-            
-            if(!email.includes('@')) { msg.innerText = "Please enter a valid email"; return; }
+            if(!email.includes('@')) { msg.innerText = "Valid email required"; return; }
             
             btn.innerText = "Processing...";
-            btn.disabled = true;
-
             const res = await fetch('/api/v1/auth/request-otp', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -209,40 +263,30 @@
             const data = await res.json();
             
             if (res.status === 200) {
+                document.getElementById('email-group').classList.add('hidden');
                 document.getElementById('otp-group').classList.remove('hidden');
                 btn.innerText = "Confirm Identity";
-                btn.disabled = false;
                 btn.onclick = verifyOTP;
                 msg.className = "text-center text-xs font-bold text-brand-500";
-                msg.innerText = "Code dispatched to secure channel.";
-                console.log("SECURE OTP (BETA):", data.debug_otp);
-            } else {
-                msg.className = "text-center text-xs font-bold text-red-500";
-                msg.innerText = "Access Denied: Account not found.";
-                btn.innerText = "Request Access";
-                btn.disabled = false;
-            }
+                msg.innerText = "Code dispatched to Gmail.";
+                console.log("OTP (BETA):", data.debug_otp);
+            } else { msg.innerText = "Access Denied: Account not found."; btn.innerText = "Send Access Code"; }
         }
 
         async function verifyOTP() {
             const email = document.getElementById('email').value;
             const otp = document.getElementById('otp').value;
-            const msg = document.getElementById('auth-msg');
-
             const res = await fetch('/api/v1/auth/verify-otp', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ email, otp })
             });
             const data = await res.json();
-
             if (res.status === 200) {
                 currentUser = data.user;
                 localStorage.session = JSON.stringify(data);
                 showDashboard();
-            } else {
-                msg.innerText = "Verification failed. Check your code.";
-            }
+            } else { document.getElementById('auth-msg').innerText = "Invalid code."; }
         }
 
         function showDashboard() {
@@ -257,16 +301,8 @@
         }
 
         function logout() { localStorage.removeItem('session'); location.reload(); }
-
-        function toggleKey() {
-            const el = document.getElementById('api-key-val');
-            el.type = el.type === 'password' ? 'text' : 'password';
-        }
-
-        function copyKey() {
-            navigator.clipboard.writeText(currentUser.api_key);
-            alert("Alpha Access Token copied!");
-        }
+        function toggleKey() { const el = document.getElementById('api-key-val'); el.type = el.type === 'password' ? 'text' : 'password'; }
+        function copyKey() { navigator.clipboard.writeText(currentUser.api_key); alert("Access Token copied!"); }
 
         async function loadGuestData() {
             try {
@@ -278,12 +314,10 @@
 
         async function loadAuthData() {
             const key = currentUser.api_key;
-            // Forex
             const fxres = await fetch('/api/v1/forex/usd-inr', { headers: {'X-API-Key': key} });
             const fxdata = await fxres.json();
             if (fxdata.status === 'success') document.getElementById('forex-auth').innerText = `₹${fxdata.data.rate}`;
 
-            // Mandi
             const mres = await fetch('/api/v1/mandi/snapshot', { headers: {'X-API-Key': key} });
             const mdata = await mres.json();
             if (mdata.status === 'success') {
@@ -298,30 +332,21 @@
         }
 
         async function verifyGST() {
-            const gstin = document.getElementById('gst-input').value;
+            const res = await fetch(`/api/v1/gst/verify/${document.getElementById('gst-input').value}`, { headers: {'X-API-Key': currentUser.api_key} });
+            const data = await res.json();
             const resDiv = document.getElementById('gst-result');
             resDiv.classList.remove('hidden');
-            resDiv.innerText = 'Analyzing mathematical signature...';
-            
-            const res = await fetch(`/api/v1/gst/verify/${gstin}`, { headers: {'X-API-Key': currentUser.api_key} });
-            const data = await res.json();
-            
             if (res.status === 200) {
                 resDiv.className = "p-4 rounded-2xl font-mono text-xs border border-green-500/30 bg-green-500/10 text-green-500";
-                resDiv.innerHTML = `<strong>VALID ENTITY</strong><br>PAN: ${data.pan}<br>Checksum: Verified`;
+                resDiv.innerHTML = `VALID: ${data.pan}`;
             } else {
                 resDiv.className = "p-4 rounded-2xl font-mono text-xs border border-red-500/30 bg-red-500/10 text-red-500";
-                resDiv.innerText = "MALFORMED OR INVALID GSTIN";
+                resDiv.innerText = "INVALID GSTIN";
             }
         }
 
-        // Auto-session restore
-        if(localStorage.session) {
-            currentUser = JSON.parse(localStorage.session).user;
-            showDashboard();
-        } else {
-            loadGuestData();
-        }
+        if(localStorage.session) { currentUser = JSON.parse(localStorage.session).user; showDashboard(); }
+        else { loadGuestData(); }
     </script>
 </body>
 </html>

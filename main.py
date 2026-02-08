@@ -115,11 +115,38 @@ async def request_otp(req: LoginRequest):
         # Fallback for beta testing
         return {"status": "success", "message": "OTP generated (Local Fallback)", "debug_otp": otp}
 
+@app.post("/api/v1/auth/signup")
+async def signup(req: LoginRequest):
+    if req.email in USERS:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    otp = str(secrets.randbelow(899999) + 100000)
+    OTPS[req.email] = otp
+    
+    # We store the pending user data in OTPS or a separate PENDING_USERS
+    # For now, let's just send the OTP. Verification will "create" them.
+    sent = send_otp_email(req.email, otp)
+    
+    if sent:
+        return {"status": "success", "message": "Verification code sent to Gmail"}
+    else:
+        return {"status": "success", "message": "OTP generated (Local Fallback)", "debug_otp": otp}
+
 @app.post("/api/v1/auth/verify-otp")
 async def verify_otp(req: LoginRequest):
     if OTPS.get(req.email) != req.otp:
         raise HTTPException(status_code=401, detail="Invalid OTP")
     
+    # If user doesn't exist, create them as FREE plan
+    if req.email not in USERS:
+        USERS[req.email] = {
+            "name": req.email.split('@')[0].capitalize(),
+            "plan": "FREE",
+            "api_key": f"ALPHA_{secrets.token_hex(8).upper()}"
+        }
+        # Update our API_KEYS registry so the new key works
+        API_KEYS[USERS[req.email]["api_key"]] = {"plan": "FREE", "owner": req.email}
+
     user = USERS[req.email]
     session_id = secrets.token_urlsafe(32)
     SESSIONS[session_id] = user
