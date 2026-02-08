@@ -1,5 +1,5 @@
 import requests
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Header, BackgroundTasks
 import datetime
 import pytesseract
 from pdf2image import convert_from_bytes
@@ -13,6 +13,8 @@ import secrets
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 app = FastAPI(
     title="Project Alpha API",
@@ -33,7 +35,7 @@ app.add_middleware(
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD") # App Password
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 
 # --- DATABASE / MODELS ---
 class LoginRequest(BaseModel):
@@ -55,96 +57,81 @@ API_KEYS = {
 
 PLAN_LEVELS = {"GUEST": 1, "FREE": 1, "GOLD": 2, "DIAMOND": 3, "OBSIDIAN": 4}
 
+# Thread pool for off-loading slow SMTP operations
+executor = ThreadPoolExecutor(max_workers=3)
+
 # --- EMAIL LOGIC ---
-def send_otp_email(receiver_email, otp):
+def send_otp_email_sync(receiver_email, otp):
     if not SENDER_EMAIL or not SENDER_PASSWORD:
-        print("CRITICAL: SMTP Credentials missing in Env Vars")
         return False
     
     msg = MIMEMultipart()
-    msg['From'] = f"Project Alpha Security <{SENDER_EMAIL}>"
+    msg['From'] = f"Alpha OS Security <{SENDER_EMAIL}>"
     msg['To'] = receiver_email
-    msg['Subject'] = f"{otp} is your Alpha OS Access Code"
+    msg['Subject'] = f"{otp} is your verification code"
 
     body = f"""
     <html>
-    <body style="font-family: sans-serif; background-color: #f8fafc; padding: 40px;">
-        <div style="max-width: 500px; margin: auto; background: white; padding: 40px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <h1 style="color: #0ea5e9; font-size: 24px; margin-bottom: 8px;">Project Alpha</h1>
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 32px;">Secure Enterprise Access</p>
-            <p style="color: #0f172a; font-size: 16px;">Your one-time access code is:</p>
-            <div style="background: #f1f5f9; padding: 24px; border-radius: 16px; font-size: 32px; font-weight: bold; text-align: center; letter-spacing: 8px; color: #0f172a; margin: 24px 0;">
-                {otp}
-            </div>
-            <p style="color: #94a3b8; font-size: 12px; line-height: 1.5;">This code will expire in 10 minutes. If you didn't request this, please ignore this email.</p>
-            <div style="border-top: 1px solid #e2e8f0; margin-top: 32px; padding-top: 24px; text-align: center;">
-                <p style="color: #cbd5e1; font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Building the future of Indian B2B data.</p>
-            </div>
-        </div>
+    <body style="font-family: sans-serif; padding: 20px;">
+        <h2 style="color: #0ea5e9;">Project Alpha</h2>
+        <p>Your one-time access code is:</p>
+        <div style="background: #f1f5f9; padding: 20px; font-size: 24px; font-weight: bold; text-align: center; border-radius: 12px;">{otp}</div>
+        <p style="font-size: 12px; color: #64748b; margin-top: 20px;">Alpha OS • Enterprise Intelligence</p>
     </body>
     </html>
     """
     msg.attach(MIMEText(body, 'html'))
 
     try:
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        # Use a short timeout to prevent blocking
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)
         server.quit()
         return True
     except Exception as e:
-        print(f"SMTP Error: {e}")
+        print(f"SMTP ERROR: {e}")
         return False
 
 # --- AUTH LOGIC ---
 @app.post("/api/v1/auth/request-otp")
-async def request_otp(req: LoginRequest):
+async def request_otp(req: LoginRequest, background_tasks: BackgroundTasks):
     if req.email not in USERS:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Account not found")
     
     otp = str(secrets.randbelow(899999) + 100000)
     OTPS[req.email] = otp
     
-    # Try sending real email
-    sent = send_otp_email(req.email, otp)
+    # Run email sending in a background task to prevent freezing the UI
+    background_tasks.add_task(send_otp_email_sync, req.email, otp)
     
-    if sent:
-        return {"status": "success", "message": "OTP sent to Gmail"}
-    else:
-        # Fallback for beta testing
-        return {"status": "success", "message": "OTP generated (Local Fallback)", "debug_otp": otp}
+    return {"status": "success", "message": "Code dispatching via background channel.", "debug_otp": otp}
 
 @app.post("/api/v1/auth/signup")
-async def signup(req: LoginRequest):
+async def signup(req: LoginRequest, background_tasks: BackgroundTasks):
     if req.email in USERS:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Email already exists")
     
     otp = str(secrets.randbelow(899999) + 100000)
     OTPS[req.email] = otp
     
-    # We store the pending user data in OTPS or a separate PENDING_USERS
-    # For now, let's just send the OTP. Verification will "create" them.
-    sent = send_otp_email(req.email, otp)
+    # Background task for registration email too
+    background_tasks.add_task(send_otp_email_sync, req.email, otp)
     
-    if sent:
-        return {"status": "success", "message": "Verification code sent to Gmail"}
-    else:
-        return {"status": "success", "message": "OTP generated (Local Fallback)", "debug_otp": otp}
+    return {"status": "success", "message": "Verification code dispatched.", "debug_otp": otp}
 
 @app.post("/api/v1/auth/verify-otp")
 async def verify_otp(req: LoginRequest):
     if OTPS.get(req.email) != req.otp:
-        raise HTTPException(status_code=401, detail="Invalid OTP")
+        raise HTTPException(status_code=401, detail="Invalid code")
     
-    # If user doesn't exist, create them as FREE plan
     if req.email not in USERS:
         USERS[req.email] = {
             "name": req.email.split('@')[0].capitalize(),
             "plan": "FREE",
             "api_key": f"ALPHA_{secrets.token_hex(8).upper()}"
         }
-        # Update our API_KEYS registry so the new key works
         API_KEYS[USERS[req.email]["api_key"]] = {"plan": "FREE", "owner": req.email}
 
     user = USERS[req.email]
@@ -160,7 +147,7 @@ async def verify_key(x_api_key: str = Header(None)):
 def check_access(user_plan: str, required_level: int):
     level = PLAN_LEVELS.get(user_plan, 0)
     if level < required_level:
-        raise HTTPException(status_code=402, detail="Upgrade required for this feature")
+        raise HTTPException(status_code=402, detail="Upgrade required")
 
 # --- ENDPOINTS ---
 @app.get("/favicon.ico", include_in_schema=False)
@@ -197,12 +184,8 @@ async def forex(user: dict = Depends(verify_key)):
 
 @app.get("/api/v1/mandi/snapshot")
 async def mandi_snapshot(user: dict = Depends(verify_key)):
-    if user['plan'] == "GUEST":
-        raise HTTPException(status_code=402, detail="Login required")
-    return {
-        "status": "success",
-        "data": [{"commodity": "Wheat", "price": 2550}, {"commodity": "Rice", "price": 3200}]
-    }
+    if user['plan'] == "GUEST": raise HTTPException(status_code=402, detail="Login required")
+    return {"status": "success", "data": [{"commodity": "Wheat", "price": 2550}, {"commodity": "Rice", "price": 3200}]}
 
 @app.get("/api/v1/gst/verify/{gstin}")
 async def verify_gst(gstin: str, user: dict = Depends(verify_key)):
