@@ -12,18 +12,17 @@ from fastapi.openapi.docs import get_swagger_ui_html
 
 description = """
 ### 🚀 Project Alpha: Enterprise Business Intelligence
-Welcome to the official documentation for the Indian Business Data API.
+The most robust Market Data Engine for the Indian Economy.
 
 ---
 
-### 💳 Subscription Plans (BETA)
-To use this API in production, select a plan that fits your scale.
-
-| Plan | Features | Monthly Rate |
-| :--- | :--- | :--- |
-| **Basic (Free)** | 50 Requests/mo, All Endpoints | ₹0 |
-| **Professional** | 5,000 Requests/mo, High Priority | ₹999 |
-| **Enterprise** | Unlimited Requests, Dedicated Support | [Contact Us] |
+### 💳 Subscription Tiers
+| Tier | Price/mo | Quota | Access Level |
+| :--- | :--- | :--- | :--- |
+| **FREE** | ₹0 | 50 req | Basic (Forex, Mandi) |
+| **GOLD** | ₹60 | 150 req | Intermediate (Basic + GST) |
+| **DIAMOND** | ₹1,000 | 5,000 req | Advance (All features) |
+| **OBSIDIAN** | Custom | Custom | Pro (SLA + Priority) |
 
 ---
 """
