@@ -10,21 +10,54 @@ import os
 
 from fastapi.openapi.docs import get_swagger_ui_html
 
+description = """
+### 🚀 Project Alpha: Enterprise Business Intelligence
+Welcome to the official documentation for the Indian Business Data API.
+
+---
+
+### 💳 Subscription Plans (BETA)
+To use this API in production, select a plan that fits your scale.
+
+| Plan | Features | Monthly Rate |
+| :--- | :--- | :--- |
+| **Basic (Free)** | 50 Requests/mo, All Endpoints | ₹0 |
+| **Professional** | 5,000 Requests/mo, High Priority | ₹999 |
+| **Enterprise** | Unlimited Requests, Dedicated Support | [Contact Us] |
+
+---
+"""
+
 app = FastAPI(
     title="Indian Business Data API (Brother Edition)",
-    docs_url=None, # Disable default docs to override
+    description=description,
+    version="1.0.0-beta",
+    docs_url=None, 
     redoc_url=None
 )
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
-    return get_swagger_ui_html(
+    html = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title + " - Documentation",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-material.css",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
     )
+    # Inject custom dark theme CSS into the body
+    custom_css = """
+    <style>
+        body { background-color: #030712 !important; color: #f8fafc !important; font-family: 'Outfit', sans-serif !important; }
+        .swagger-ui { filter: invert(88%) hue-rotate(180deg); }
+        .swagger-ui .topbar { display: none; }
+        .swagger-ui .info .title { color: #000 !important; }
+        .swagger-ui .scheme-container { background: transparent !important; }
+    </style>
+    """
+    new_content = html.body.decode().replace("</body>", custom_css + "</body>")
+    return HTMLResponse(content=new_content)
 
 # Load dashboard template
 DASHBOARD_HTML = ""
