@@ -3,171 +3,296 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
-    <title>Project Alpha | Console</title>
+    <title>Alpha OS | Enterprise Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script>
-        tailwind.config = { darkMode: 'class' }
+        tailwind.config = { 
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            900: '#020617',
+                            800: '#0f172a',
+                            700: '#1e293b',
+                        }
+                    }
+                }
+            }
+        }
         function toggleTheme() {
             document.documentElement.classList.toggle('dark');
             localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         }
     </script>
     <style>
-        body { font-family: 'Outfit', sans-serif; transition: all 0.3s ease; }
-        .dark body { background: #030712; color: #f8fafc; }
-        .light body { background: #f1f5f9; color: #0f172a; }
-        .glass { backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .dark .glass { background: rgba(17, 24, 39, 0.7); }
-        .light .glass { background: rgba(255, 255, 255, 0.8); border-color: rgba(0,0,0,0.05); }
-        input { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); padding: 12px; border-radius: 12px; outline: none; }
-        .dark input { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: white; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.5s ease; }
+        .glass { backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .dark .glass { background: rgba(15, 23, 42, 0.6); border-color: rgba(255, 255, 255, 0.05); }
+        .light .glass { background: rgba(255, 255, 255, 0.7); border-color: rgba(0, 0, 0, 0.05); }
+        .gradient-text { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); color: white; transition: all 0.3s; }
+        .btn-primary:hover { transform: scale(1.02); filter: brightness(1.1); }
+        input { transition: all 0.2s; }
+        input:focus { ring: 2px; ring-color: #0ea5e9; border-color: transparent; }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="min-h-screen bg-slate-50 dark:bg-dark-900 text-slate-900 dark:text-slate-100 selection:bg-brand-500/30">
     <script>if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');</script>
     
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-12">
-            <h1 class="text-3xl font-black tracking-tight">Project <span class="text-sky-500">Alpha</span></h1>
-            <div class="flex items-center gap-4">
-                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-white/10">🌓</button>
-                <button id="logout-btn" onclick="logout()" class="hidden text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-red-400">Logout</button>
+    <!-- Top Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">A</div>
+            <span class="text-xl font-extrabold tracking-tighter">PROJECT <span class="gradient-text">ALPHA</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="toggleTheme()" class="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">🌓</button>
+            <div id="user-pill" class="hidden glass px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                <span id="user-display">Jasper</span>
             </div>
-        </header>
+            <button id="logout-btn" onclick="logout()" class="hidden text-xs font-bold uppercase text-slate-400 hover:text-red-500 transition-colors">Exit</button>
+        </div>
+    </nav>
 
-        <!-- Guest View / Login -->
-        <div id="guest-screen" class="space-y-12">
-            <div class="max-w-md mx-auto glass p-10 rounded-[2rem] shadow-xl text-center">
-                <h2 class="text-2xl font-bold mb-2">Developer Login</h2>
-                <p class="text-slate-500 text-sm mb-8 text-balance">Enterprise users can log in via Email + OTP for full API access.</p>
-                <div id="login-fields" class="space-y-4 text-left">
-                    <div id="email-field">
-                        <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Email Address</label>
-                        <input type="email" id="email" class="w-full mt-1" placeholder="ja5p3r@openclaw.ai">
+    <main class="pt-32 pb-20 px-6 max-w-6xl mx-auto">
+        <!-- Auth View -->
+        <div id="auth-screen" class="max-w-md mx-auto space-y-8 py-10">
+            <div class="text-center space-y-2">
+                <h2 class="text-3xl font-extrabold">Welcome back</h2>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Enter your enterprise credentials to access Alpha OS</p>
+            </div>
+            
+            <div class="glass p-8 rounded-3xl shadow-2xl shadow-brand-500/5 space-y-6">
+                <div id="login-fields" class="space-y-4">
+                    <div id="email-group">
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">Work Email</label>
+                        <input type="email" id="email" class="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:ring-2 focus:ring-brand-500" placeholder="name@company.com">
                     </div>
-                    <div id="otp-field" class="hidden">
-                        <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">OTP (check logs)</label>
-                        <input type="text" id="otp" class="w-full mt-1" placeholder="123456">
+                    <div id="otp-group" class="hidden animate-in fade-in slide-in-from-top-4 duration-500">
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">Access Code (OTP)</label>
+                        <input type="text" id="otp" class="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:ring-2 focus:ring-brand-500" placeholder="6-digit code">
+                        <p class="text-[10px] text-brand-500 mt-2 ml-1 font-semibold italic">Check your secure console for the code.</p>
                     </div>
-                    <button id="auth-btn" onclick="requestOTP()" class="w-full bg-sky-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-sky-500/20">Send Access Code</button>
+                    <button id="auth-btn" onclick="requestOTP()" class="btn-primary w-full py-4 rounded-2xl font-bold text-lg shadow-xl shadow-brand-500/20">Request Access</button>
                 </div>
-                <p id="auth-msg" class="text-xs mt-4 text-slate-500"></p>
+                <div id="auth-msg" class="text-center text-xs font-medium min-h-[1em]"></div>
             </div>
 
-            <!-- Limited Guest Data -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="glass p-8 rounded-[2rem]">
-                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2">🌍 Global Forex <span class="text-[10px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded">Public</span></h3>
-                    <div id="forex-guest" class="text-5xl font-black text-sky-500 italic">₹--.--</div>
-                    <p class="text-xs text-slate-500 mt-4 italic">* Limited Guest View. Log in for Mandi, GST & OCR tools.</p>
+            <!-- Public Market Preview -->
+            <div class="glass p-6 rounded-3xl border-dashed border-slate-300 dark:border-slate-700">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Public Index</span>
+                    <span class="flex items-center gap-1 text-[10px] font-bold text-green-500"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> LIVE</span>
                 </div>
-                <div class="glass p-8 rounded-[2rem] opacity-50 flex items-center justify-center">
-                    <p class="text-slate-500 font-bold uppercase tracking-widest text-xs">Login for Mandi Snapshot</p>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium uppercase">USD to INR</p>
+                        <h3 id="forex-guest" class="text-3xl font-black italic tracking-tighter text-brand-500">₹--.--</h3>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter leading-none mb-1">Vol: 0.12%</p>
+                        <div class="w-20 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div class="w-2/3 h-full bg-brand-500"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Authenticated View -->
-        <div id="auth-screen" class="hidden space-y-8">
-            <div class="glass p-8 rounded-[2.5rem] border-sky-500/20 bg-sky-500/5 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div>
-                    <h2 class="text-xl font-bold mb-1">Production API Key</h2>
-                    <p class="text-slate-500 text-xs">Use this key for all enterprise API calls.</p>
+        <!-- Dashboard View -->
+        <div id="main-dashboard" class="hidden space-y-8 animate-in fade-in zoom-in-95 duration-700">
+            <!-- Hero Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass p-8 rounded-[2rem] space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div class="p-3 bg-brand-500/10 rounded-2xl text-brand-500 text-2xl">💱</div>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Currency</span>
+                    </div>
+                    <div>
+                        <h3 id="forex-auth" class="text-5xl font-black tracking-tighter">₹--.--</h3>
+                        <p class="text-xs text-slate-400 mt-1 font-medium italic">Global USD Benchmark</p>
+                    </div>
                 </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <input type="password" id="api-key-val" readonly class="font-mono text-sm flex-grow bg-black/20 border-none">
-                    <button onclick="toggleKey()" class="px-4 py-2 bg-white/5 rounded-xl text-xs">Show</button>
+                
+                <div class="md:col-span-2 glass p-8 rounded-[2rem] relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-8 opacity-5 font-black text-8xl pointer-events-none tracking-tighter italic">MARKET</div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-black italic tracking-tighter uppercase">Enterprise Mandi Index</h3>
+                        <div class="flex gap-2">
+                            <div class="glass px-3 py-1 rounded-lg text-[10px] font-bold uppercase text-slate-400">ALL STATES</div>
+                            <div class="glass px-3 py-1 rounded-lg text-[10px] font-bold uppercase text-brand-500 bg-brand-500/5">TOP 5</div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">
+                                <tr><th class="pb-4">Commodity</th><th class="pb-4">Location</th><th class="pb-4 text-right">Market Price</th></tr>
+                            </thead>
+                            <tbody id="mandi-body" class="text-sm font-semibold">
+                                <!-- Injected -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 text-sm">
-                <div class="lg:col-span-1 space-y-8">
-                    <div class="glass p-8 rounded-[2rem]">
-                        <h3 class="font-bold mb-4">GST Validator</h3>
-                        <input type="text" id="gst-input" placeholder="Enter GSTIN" class="w-full text-xs mb-4">
-                        <button onclick="verifyGST()" class="w-full bg-white text-black font-bold py-3 rounded-xl">Verify Structure</button>
-                        <div id="gst-result" class="mt-4 hidden p-4 rounded-xl font-mono text-xs"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- GST Tools -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="glass p-8 rounded-[2rem] space-y-6 bg-gradient-to-br from-brand-500/5 to-transparent">
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-black uppercase tracking-tighter italic">GST Intelligence</h3>
+                            <p class="text-xs text-slate-400 font-medium">Verify mathematical integrity of GSTIN identifiers.</p>
+                        </div>
+                        <div class="space-y-4">
+                            <input type="text" id="gst-input" class="w-full px-4 py-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 outline-none" placeholder="Enter 15-digit GSTIN">
+                            <button onclick="verifyGST()" class="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-black font-bold rounded-2xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors">Verify Entity</button>
+                        </div>
+                        <div id="gst-result" class="hidden p-4 rounded-2xl font-mono text-xs border border-dashed animate-in zoom-in-95"></div>
+                    </div>
+
+                    <div class="glass p-6 rounded-[2rem] border-dashed border-slate-300 dark:border-slate-700 text-center">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Enterprise Plan</p>
+                        <p class="text-lg font-black italic text-brand-500" id="plan-display">OBSIDIAN</p>
                     </div>
                 </div>
-                <div class="lg:col-span-2 glass p-8 rounded-[2rem]">
-                    <h3 class="font-bold mb-6">Mandi Intelligence</h3>
-                    <table class="w-full text-left">
-                        <thead class="text-slate-500 text-[10px] uppercase font-bold tracking-widest border-b border-white/5">
-                            <tr><th class="pb-4">Commodity</th><th class="pb-4 text-right">Market Price</th></tr>
-                        </thead>
-                        <tbody id="mandi-body"></tbody>
-                    </table>
+
+                <!-- API Key Management -->
+                <div class="lg:col-span-2 glass p-10 rounded-[2.5rem] flex flex-col justify-between space-y-8 relative overflow-hidden">
+                    <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-500/10 blur-3xl rounded-full"></div>
+                    <div class="space-y-2">
+                        <h3 class="text-2xl font-black tracking-tighter italic">Your Access Key</h3>
+                        <p class="text-slate-400 text-sm max-w-md">Keep this key secure. It allows full access to all Alpha OS enterprise endpoints and document processing engines.</p>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                        <div class="relative w-full">
+                            <input type="password" id="api-key-val" readonly class="w-full px-6 py-4 rounded-2xl bg-slate-900 text-brand-500 font-mono text-sm border-none ring-1 ring-slate-800" value="••••••••••••••••">
+                            <button onclick="toggleKey()" class="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg">👁️</button>
+                        </div>
+                        <button onclick="copyKey()" class="btn-primary px-8 py-4 rounded-2xl font-bold whitespace-nowrap shadow-lg shadow-brand-500/20">Copy Token</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         const API_BASE = window.location.origin;
-        let currentUser = null;
         const GUEST_KEY = "ALPHA_GUEST_KEY";
+        let currentUser = null;
 
         async function requestOTP() {
             const email = document.getElementById('email').value;
+            const btn = document.getElementById('auth-btn');
+            const msg = document.getElementById('auth-msg');
+            
+            if(!email.includes('@')) { msg.innerText = "Please enter a valid email"; return; }
+            
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
             const res = await fetch('/api/v1/auth/request-otp', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ email })
             });
+            const data = await res.json();
+            
             if (res.status === 200) {
-                document.getElementById('email-field').classList.add('hidden');
-                document.getElementById('otp-field').classList.remove('hidden');
-                document.getElementById('auth-btn').innerText = "Verify Access Code";
-                document.getElementById('auth-btn').onclick = verifyOTP;
-                document.getElementById('auth-msg').innerText = "OTP sent. Check your secure logs.";
+                document.getElementById('otp-group').classList.remove('hidden');
+                btn.innerText = "Confirm Identity";
+                btn.disabled = false;
+                btn.onclick = verifyOTP;
+                msg.className = "text-center text-xs font-bold text-brand-500";
+                msg.innerText = "Code dispatched to secure channel.";
+                console.log("SECURE OTP (BETA):", data.debug_otp);
             } else {
-                document.getElementById('auth-msg').innerText = "Account not found.";
+                msg.className = "text-center text-xs font-bold text-red-500";
+                msg.innerText = "Access Denied: Account not found.";
+                btn.innerText = "Request Access";
+                btn.disabled = false;
             }
         }
 
         async function verifyOTP() {
             const email = document.getElementById('email').value;
             const otp = document.getElementById('otp').value;
+            const msg = document.getElementById('auth-msg');
+
             const res = await fetch('/api/v1/auth/verify-otp', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ email, otp })
             });
+            const data = await res.json();
+
             if (res.status === 200) {
-                const data = await res.json();
                 currentUser = data.user;
-                showAuthScreen();
+                localStorage.session = JSON.stringify(data);
+                showDashboard();
             } else {
-                document.getElementById('auth-msg').innerText = "Invalid access code.";
+                msg.innerText = "Verification failed. Check your code.";
             }
         }
 
-        function showAuthScreen() {
-            document.getElementById('guest-screen').classList.add('hidden');
-            document.getElementById('auth-screen').classList.remove('hidden');
+        function showDashboard() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-dashboard').classList.remove('hidden');
+            document.getElementById('user-pill').classList.remove('hidden');
             document.getElementById('logout-btn').classList.remove('hidden');
+            document.getElementById('user-display').innerText = currentUser.name;
+            document.getElementById('plan-display').innerText = currentUser.plan;
             document.getElementById('api-key-val').value = currentUser.api_key;
             loadAuthData();
         }
 
-        function logout() { location.reload(); }
+        function logout() { localStorage.removeItem('session'); location.reload(); }
+
+        function toggleKey() {
+            const el = document.getElementById('api-key-val');
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        function copyKey() {
+            navigator.clipboard.writeText(currentUser.api_key);
+            alert("Alpha Access Token copied!");
+        }
 
         async function loadGuestData() {
-            const res = await fetch('/api/v1/forex/usd-inr', { headers: {'X-API-Key': GUEST_KEY} });
-            const data = await res.json();
-            if (data.status === 'success') document.getElementById('forex-guest').innerText = `₹${data.data.rate}`;
+            try {
+                const res = await fetch('/api/v1/forex/usd-inr', { headers: {'X-API-Key': GUEST_KEY} });
+                const data = await res.json();
+                if (data.status === 'success') document.getElementById('forex-guest').innerText = `₹${data.data.rate}`;
+            } catch (e) {}
         }
 
         async function loadAuthData() {
             const key = currentUser.api_key;
+            // Forex
+            const fxres = await fetch('/api/v1/forex/usd-inr', { headers: {'X-API-Key': key} });
+            const fxdata = await fxres.json();
+            if (fxdata.status === 'success') document.getElementById('forex-auth').innerText = `₹${fxdata.data.rate}`;
+
             // Mandi
             const mres = await fetch('/api/v1/mandi/snapshot', { headers: {'X-API-Key': key} });
             const mdata = await mres.json();
             if (mdata.status === 'success') {
                 document.getElementById('mandi-body').innerHTML = mdata.data.map(i => `
-                    <tr class="border-b border-white/5"><td class="py-4 font-bold">${i.commodity}</td><td class="py-4 text-right font-black text-sky-500">₹${i.price}</td></tr>
+                    <tr class="group hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <td class="py-4 px-2 border-b border-slate-100 dark:border-slate-800">${i.commodity}</td>
+                        <td class="py-4 px-2 border-b border-slate-100 dark:border-slate-800 text-slate-500 font-normal">Lucknow, UP</td>
+                        <td class="py-4 px-2 border-b border-slate-100 dark:border-slate-800 text-right text-brand-500 font-black italic tracking-tighter text-lg">₹${i.price}</td>
+                    </tr>
                 `).join('');
             }
         }
@@ -176,24 +301,27 @@
             const gstin = document.getElementById('gst-input').value;
             const resDiv = document.getElementById('gst-result');
             resDiv.classList.remove('hidden');
-            resDiv.innerHTML = 'Analyzing...';
+            resDiv.innerText = 'Analyzing mathematical signature...';
+            
             const res = await fetch(`/api/v1/gst/verify/${gstin}`, { headers: {'X-API-Key': currentUser.api_key} });
             const data = await res.json();
+            
             if (res.status === 200) {
-                resDiv.className = "mt-4 p-4 rounded-xl font-mono text-xs bg-green-500/10 text-green-500";
-                resDiv.innerHTML = `VALID: ${data.pan}`;
+                resDiv.className = "p-4 rounded-2xl font-mono text-xs border border-green-500/30 bg-green-500/10 text-green-500";
+                resDiv.innerHTML = `<strong>VALID ENTITY</strong><br>PAN: ${data.pan}<br>Checksum: Verified`;
             } else {
-                resDiv.className = "mt-4 p-4 rounded-xl font-mono text-xs bg-red-500/10 text-red-500";
-                resDiv.innerHTML = "INVALID STRUCTURE";
+                resDiv.className = "p-4 rounded-2xl font-mono text-xs border border-red-500/30 bg-red-500/10 text-red-500";
+                resDiv.innerText = "MALFORMED OR INVALID GSTIN";
             }
         }
 
-        function toggleKey() {
-            const el = document.getElementById('api-key-val');
-            el.type = el.type === 'password' ? 'text' : 'password';
+        // Auto-session restore
+        if(localStorage.session) {
+            currentUser = JSON.parse(localStorage.session).user;
+            showDashboard();
+        } else {
+            loadGuestData();
         }
-
-        loadGuestData();
     </script>
 </body>
 </html>
