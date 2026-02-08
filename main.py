@@ -5,7 +5,7 @@ import pytesseract
 from pdf2image import convert_from_bytes
 import io
 
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 import os
 
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -35,6 +35,10 @@ app = FastAPI(
     docs_url=None, 
     redoc_url=None
 )
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return RedirectResponse(url="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>")
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -225,6 +229,7 @@ async def root():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
         <title>Indian Business Data API | Enterprise Intelligence</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
