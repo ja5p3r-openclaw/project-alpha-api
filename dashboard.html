@@ -4,239 +4,202 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
-    <title>Project Alpha | Professional Market Intelligence</title>
+    <title>Project Alpha | Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #030712;
-            --glass: rgba(17, 24, 39, 0.7);
-            --border: rgba(255, 255, 255, 0.08);
-            --accent: #38bdf8;
-        }
+        :root { --bg: #030712; --glass: rgba(17, 24, 39, 0.7); --border: rgba(255, 255, 255, 0.08); }
         body { 
             font-family: 'Outfit', sans-serif; 
             background-color: var(--bg); 
             background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, #030712 100%);
-            color: #f8fafc; 
-            min-height: 100vh;
+            color: #f8fafc; min-height: 100vh;
         }
-        .glass { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .glass { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border); }
         .accent-gradient { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); }
         .text-gradient { background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .status-glow { box-shadow: 0 0 15px rgba(34, 197, 94, 0.3); }
-        .shimmer { position: relative; overflow: hidden; }
-        .shimmer::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-            animation: shimmer 3s infinite;
-        }
-        @keyframes shimmer { 100% { left: 100%; } }
+        input { background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: white; border-radius: 12px; padding: 12px; }
+        button { border-radius: 12px; font-weight: bold; transition: all 0.2s; }
+        button:hover { transform: translateY(-2px); opacity: 0.9; }
     </style>
 </head>
 <body class="p-6 md:p-12">
-    <div class="max-w-7xl mx-auto">
-        <!-- Navigation / Header -->
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
+    <div id="auth-screen" class="max-w-md mx-auto mt-20 space-y-8 text-center">
+        <h1 class="text-4xl font-bold tracking-tight">Project <span class="text-gradient">Alpha</span></h1>
+        <div class="glass p-8 rounded-3xl space-y-4">
+            <h2 id="auth-title" class="text-xl font-bold">Secure Access</h2>
+            <div id="login-fields" class="flex flex-col gap-4 text-left">
+                <div>
+                    <label class="text-xs text-slate-500 uppercase ml-1">Username</label>
+                    <input type="text" id="username" class="w-full mt-1 outline-none focus:border-sky-500" placeholder="ja5p3r">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase ml-1">Password</label>
+                    <input type="password" id="password" class="w-full mt-1 outline-none focus:border-sky-500" placeholder="••••••••">
+                </div>
+                <div id="2fa-field" class="hidden">
+                    <label class="text-xs text-slate-500 uppercase ml-1">Security PIN (2FA)</label>
+                    <input type="text" id="pin" class="w-full mt-1 outline-none focus:border-sky-500" placeholder="123456">
+                </div>
+            </div>
+            <button id="auth-btn" onclick="handleAuth()" class="w-full accent-gradient py-3 mt-4 text-white">Login to Console</button>
+            <p id="auth-msg" class="text-xs text-red-400 mt-2 min-h-[1em]"></p>
+        </div>
+    </div>
+
+    <div id="main-dashboard" class="hidden max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-12">
             <div>
-                <h1 class="text-4xl font-bold tracking-tight mb-2">Project <span class="text-gradient">Alpha</span></h1>
-                <p class="text-slate-400 flex items-center">
-                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2 status-glow"></span> 
-                    Production Cluster: <span class="ml-1 font-mono text-xs text-slate-500 uppercase">Asia-South-1</span>
-                </p>
+                <h1 class="text-3xl font-bold tracking-tight mb-1">Project <span class="text-gradient">Alpha</span></h1>
+                <p id="user-welcome" class="text-slate-500 text-sm">Welcome back, Developer</p>
             </div>
-            <div class="flex gap-4">
-                <a href="/docs" class="glass px-4 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-all border border-white/5">API Documentation</a>
-                <button class="accent-gradient px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-sky-500/20 hover:scale-105 transition-transform">Get Started</button>
-            </div>
+            <button onclick="logout()" class="text-xs text-slate-500 hover:text-white transition-colors">Logout Session</button>
         </header>
 
-        <!-- Stats Overview Row -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="glass p-4 rounded-2xl">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Live Uptime</p>
-                <p class="text-xl font-bold">99.98%</p>
-            </div>
-            <div class="glass p-4 rounded-2xl">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Global Latency</p>
-                <p class="text-xl font-bold">42ms</p>
-            </div>
-            <div class="glass p-4 rounded-2xl">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Total Requests</p>
-                <p class="text-xl font-bold">14.2k</p>
-            </div>
-            <div class="glass p-4 rounded-2xl">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Active Users</p>
-                <p class="text-xl font-bold text-green-400">8</p>
+        <!-- API Key Manager -->
+        <div class="glass p-8 rounded-3xl mb-8 border-sky-500/20 bg-sky-500/5">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold">API Access Key</h2>
+                    <p class="text-slate-400 text-xs">Used for authentication in all production requests.</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <input type="password" id="api-key-display" readonly value="••••••••••••••••" class="bg-black/40 border-none flex-grow md:w-64 font-mono text-sm">
+                    <button onclick="toggleKey()" class="bg-white/10 px-4 py-2 text-xs">Show</button>
+                    <button onclick="copyKey()" class="accent-gradient px-4 py-2 text-xs">Copy</button>
+                </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Left Column: Markets & Forex -->
             <div class="lg:col-span-1 space-y-8">
                 <!-- Forex Card -->
-                <div class="glass rounded-3xl p-8 shimmer relative overflow-hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-lg font-bold">Currency Exchange</h2>
-                        <span class="bg-sky-500/10 text-sky-400 text-[10px] px-2 py-0.5 rounded-full border border-sky-500/20 font-bold uppercase">Live</span>
-                    </div>
+                <div class="glass rounded-3xl p-8">
+                    <h2 class="text-lg font-bold mb-6">Currency (USD/INR)</h2>
                     <div id="forex-content">
-                        <div class="text-5xl font-bold mb-2">₹--.--</div>
-                        <p class="text-slate-400 text-sm">USD to INR Snapshot</p>
-                    </div>
-                    <div class="mt-8 pt-6 border-t border-white/5">
-                        <div class="flex justify-between text-xs text-slate-500 font-medium">
-                            <span>Volatility: <span class="text-green-400">Low</span></span>
-                            <span>Sentiment: <span class="text-sky-400">Bullish</span></span>
-                        </div>
+                        <div class="text-4xl font-bold text-gradient">₹--.--</div>
                     </div>
                 </div>
 
-                <!-- GST Validator Tool -->
-                <div class="glass rounded-3xl p-8 bg-gradient-to-br from-indigo-500/5 to-transparent">
-                    <h2 class="text-lg font-bold mb-4">GSTIN Intelligence</h2>
-                    <p class="text-slate-400 text-xs mb-6">Verify mathematical integrity of Indian GST numbers using Modulus 36 algorithms.</p>
+                <!-- GST Validator -->
+                <div class="glass rounded-3xl p-8">
+                    <h2 class="text-lg font-bold mb-4">GST Validator</h2>
                     <div class="space-y-4">
-                        <input type="text" id="gst-input" placeholder="Enter GSTIN..." class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all">
-                        <button onclick="checkGST()" class="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-slate-200 transition-colors">Verify Entity</button>
+                        <input type="text" id="gst-input" placeholder="Enter GSTIN..." class="w-full text-sm">
+                        <button onclick="checkGST()" class="w-full bg-white text-black py-2.5 text-sm font-bold">Verify</button>
                     </div>
                     <div id="gst-result" class="mt-4 hidden p-4 rounded-xl text-xs font-mono"></div>
                 </div>
             </div>
 
-            <!-- Right Column: Mandi Prices -->
             <div class="lg:col-span-2">
-                <div class="glass rounded-3xl p-8 h-full">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div>
-                            <h2 class="text-xl font-bold">Mandi Price Index</h2>
-                            <p class="text-slate-400 text-sm">Real-time agricultural commodity feeds from major Indian hubs.</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <span class="px-3 py-1 bg-white/5 rounded-lg text-xs font-semibold text-slate-400">All States</span>
-                            <span class="px-3 py-1 bg-white/5 rounded-lg text-xs font-semibold text-slate-400">Today</span>
-                        </div>
-                    </div>
-                    
-                    <div class="overflow-hidden">
-                        <table class="w-full text-left">
+                <div class="glass rounded-3xl p-8">
+                    <h2 class="text-xl font-bold mb-6 text-white">Mandi Price Index</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
                             <thead class="text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                                <tr>
-                                    <th class="pb-4 px-2">Commodity</th>
-                                    <th class="pb-4 px-2">State</th>
-                                    <th class="pb-4 px-2 text-right">Market Price</th>
-                                    <th class="pb-4 px-2 text-right">Trend</th>
-                                </tr>
+                                <tr><th class="pb-4">Commodity</th><th class="pb-4">State</th><th class="pb-4 text-right">Price</th></tr>
                             </thead>
-                            <tbody id="mandi-body" class="text-sm">
-                                <!-- Data Injected Here -->
-                            </tbody>
+                            <tbody id="mandi-body"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Subscription Plans -->
-        <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <!-- FREE -->
-            <div class="glass p-5 rounded-3xl border border-white/5 hover:border-sky-500/30 transition-colors">
-                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Free</p>
-                <h3 class="text-xl font-bold mb-4 text-white">₹0<span class="text-slate-500 text-xs font-normal">/mo</span></h3>
-                <ul class="text-[10px] text-slate-400 space-y-1">
-                    <li>• 50 Requests / mo</li>
-                    <li>• Basic Access</li>
-                    <li>• Community Support</li>
-                </ul>
+        <!-- Plans -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="glass p-5 rounded-2xl border-white/5 opacity-60">
+                <p class="text-[10px] font-bold text-slate-500 uppercase">Free</p>
+                <h3 class="text-lg font-bold mt-1">₹0</h3>
             </div>
-            <!-- GOLD -->
-            <div class="glass p-5 rounded-3xl border border-yellow-500/20 bg-yellow-500/5 hover:border-yellow-500/40 transition-colors">
-                <p class="text-yellow-500 text-[10px] font-bold uppercase tracking-widest mb-2">Gold</p>
-                <h3 class="text-xl font-bold mb-4 text-white">₹60<span class="text-slate-500 text-xs font-normal">/mo</span></h3>
-                <ul class="text-[10px] text-slate-400 space-y-1">
-                    <li>• 150 Requests / mo</li>
-                    <li>• Intermediate Access</li>
-                    <li>• GST Validator Incl.</li>
-                </ul>
+            <div class="glass p-5 rounded-2xl border-yellow-500/30 bg-yellow-500/5">
+                <p class="text-[10px] font-bold text-yellow-500 uppercase">Gold</p>
+                <h3 class="text-lg font-bold mt-1">₹60</h3>
             </div>
-            <!-- DIAMOND -->
-            <div class="glass p-5 rounded-3xl border border-sky-500/50 bg-sky-500/5 relative overflow-hidden">
-                <div class="absolute top-0 right-0 bg-sky-500 text-[8px] font-bold px-2 py-0.5 rounded-bl-lg uppercase">Popular</div>
-                <p class="text-sky-400 text-[10px] font-bold uppercase tracking-widest mb-2">Diamond</p>
-                <h3 class="text-xl font-bold mb-4 text-white">₹1k<span class="text-slate-500 text-xs font-normal">/mo</span></h3>
-                <ul class="text-[10px] text-slate-400 space-y-1">
-                    <li>• 5k Requests / mo</li>
-                    <li>• Advance Access</li>
-                    <li>• Full OCR Engine</li>
-                </ul>
+            <div class="glass p-5 rounded-2xl border-sky-500/50 bg-sky-500/5">
+                <p class="text-[10px] font-bold text-sky-500 uppercase">Diamond</p>
+                <h3 class="text-lg font-bold mt-1">₹1k</h3>
             </div>
-            <!-- OBSIDIAN -->
-            <div class="glass p-5 rounded-3xl border border-purple-500/20 bg-purple-500/5 hover:border-purple-500/40 transition-colors">
-                <p class="text-purple-400 text-[10px] font-bold uppercase tracking-widest mb-2">Obsidian</p>
-                <h3 class="text-xl font-bold mb-4 text-white">Custom</h3>
-                <ul class="text-[10px] text-slate-400 space-y-1">
-                    <li>• Custom Volume</li>
-                    <li>• Pro Access</li>
-                    <li>• 24/7 Priority SLA</li>
-                </ul>
+            <div class="glass p-5 rounded-2xl border-purple-500/30 bg-purple-500/5">
+                <p class="text-[10px] font-bold text-purple-400 uppercase">Obsidian</p>
+                <h3 class="text-lg font-bold mt-1">Custom</h3>
             </div>
         </div>
-
-        <!-- Call to Action -->
-        <div class="mt-12 glass rounded-3xl p-10 bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-500/20 text-center">
-            <h3 class="text-2xl font-bold mb-2">Build your business on Project Alpha.</h3>
-            <p class="text-slate-400 mb-8 max-w-2xl mx-auto">Get access to our full suite of APIs including OCR, Mandi Data, and Forex with a single API key.</p>
-            <div class="flex flex-wrap justify-center gap-4">
-                <button class="bg-white text-black px-8 py-3 rounded-2xl font-bold">Request API Key</button>
-                <button class="glass px-8 py-3 rounded-2xl font-bold">Contact Sales</button>
-            </div>
-        </div>
-
-        <footer class="mt-16 pb-12 text-center">
-            <p class="text-slate-600 text-xs font-medium uppercase tracking-[0.2em]">Designed & Developed by Brother AI (Pi) & Jasper</p>
-        </footer>
     </div>
 
     <script>
-        const API_BASE = window.location.origin;
-        const GUEST_KEY = "ALPHA_GUEST_KEY";
+        let currentUser = null;
+        let requires2FA = false;
+
+        async function handleAuth() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const pin = document.getElementById('pin').value;
+            const msg = document.getElementById('auth-msg');
+            msg.innerText = "";
+
+            try {
+                const res = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass, pin: pin })
+                });
+                const data = await res.json();
+
+                if (res.status === 200) {
+                    if (data.status === 'need_2fa') {
+                        requires2FA = true;
+                        document.getElementById('2fa-field').classList.remove('hidden');
+                        msg.innerText = "PIN required (check console for now)";
+                        console.log("2FA PIN IS:", data.debug_pin);
+                    } else {
+                        currentUser = data;
+                        showDashboard();
+                    }
+                } else {
+                    msg.innerText = data.detail || "Authentication Failed";
+                }
+            } catch (err) { msg.innerText = "Connection error."; }
+        }
+
+        function showDashboard() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-dashboard').classList.remove('hidden');
+            document.getElementById('user-welcome').innerText = `Active Session: ${currentUser.username} (${currentUser.plan})`;
+            updateDashboard();
+        }
+
+        function logout() { location.reload(); }
+
+        function toggleKey() {
+            const el = document.getElementById('api-key-display');
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        function copyKey() {
+            const key = currentUser.api_key;
+            navigator.clipboard.writeText(key);
+            alert("API Key copied to clipboard");
+        }
 
         async function updateDashboard() {
+            const key = currentUser.api_key;
             try {
-                // Forex
-                const fxRes = await fetch(`${API_BASE}/api/v1/forex/usd-inr`, {
-                    headers: { 'X-API-Key': GUEST_KEY }
-                });
-                const fxData = await fxRes.json();
+                const fx = await fetch('/api/v1/forex/usd-inr', { headers: { 'X-API-Key': key } });
+                const fxData = await fx.json();
                 if (fxData.status === 'success') {
-                    document.getElementById('forex-content').innerHTML = `
-                        <div class="text-5xl font-bold mb-2 text-gradient">₹${fxData.data.rate}</div>
-                        <p class="text-slate-400 text-sm">Updated: ${fxData.data.date}</p>
-                    `;
+                    document.getElementById('forex-content').innerHTML = `<div class="text-4xl font-bold text-gradient">₹${fxData.data.rate}</div>`;
                 }
 
-                // Mandi
-                const mandiRes = await fetch(`${API_BASE}/api/v1/mandi/snapshot`, {
-                    headers: { 'X-API-Key': GUEST_KEY }
-                });
-                const mandiData = await mandiRes.json();
-                if (mandiData.status === 'success') {
-                    const trends = ['↑', '↓', '↔'];
-                    const colors = ['text-green-400', 'text-red-400', 'text-slate-400'];
-                    
-                    document.getElementById('mandi-body').innerHTML = mandiData.data.map((item, i) => {
-                        const trendIdx = i % 3;
-                        return `
-                        <tr class="group hover:bg-white/5 transition-all">
-                            <td class="py-4 px-2 font-semibold">${item.commodity}</td>
-                            <td class="py-4 px-2 text-slate-400">${item.state}</td>
-                            <td class="py-4 px-2 text-right font-bold text-white">₹${item.modal_price}</td>
-                            <td class="py-4 px-2 text-right font-bold ${colors[trendIdx]}">${trends[trendIdx]}</td>
-                        </tr>
-                        `;
-                    }).join('');
+                const mandi = await fetch('/api/v1/mandi/snapshot', { headers: { 'X-API-Key': key } });
+                const mData = await mandi.json();
+                if (mData.status === 'success') {
+                    document.getElementById('mandi-body').innerHTML = mData.data.map(i => `
+                        <tr class="border-b border-white/5"><td class="py-3">${i.commodity}</td><td>${i.state}</td><td class="text-right font-bold">₹${i.modal_price}</td></tr>
+                    `).join('');
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {}
         }
 
         async function checkGST() {
@@ -244,34 +207,18 @@
             const resDiv = document.getElementById('gst-result');
             resDiv.classList.remove('hidden');
             resDiv.innerHTML = 'Verifying...';
-            
             try {
-                // Note: The Guest key only has FREE access. We need a higher key for GST.
-                // For demonstration, we'll try with the Master Key if user provides one, 
-                // but for now we'll stick to the logic.
-                const res = await fetch(`${API_BASE}/api/v1/gst/verify/${gstin}`, {
-                    headers: { 'X-API-Key': GUEST_KEY }
-                });
+                const res = await fetch(`/api/v1/gst/verify/${gstin}`, { headers: { 'X-API-Key': currentUser.api_key } });
                 const data = await res.json();
-                
-                if (res.status === 402) {
-                    resDiv.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
-                    resDiv.innerHTML = `UPGRADE REQUIRED: ${data.detail}`;
-                    return;
-                }
-
-                if (data.status === 'success') {
+                if (res.status === 200) {
                     resDiv.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-green-500/10 text-green-400 border border-green-500/20';
-                    resDiv.innerHTML = `SUCCESS: Valid GSTIN Found.<br>PAN: ${data.analysis.pan}<br>Status: ACTIVE`;
+                    resDiv.innerHTML = `SUCCESS: Valid GSTIN Found.`;
                 } else {
                     resDiv.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-red-500/10 text-red-400 border border-red-500/20';
-                    resDiv.innerHTML = `FAILED: ${data.message || data.detail}`;
+                    resDiv.innerHTML = `FAILED: ${data.detail || data.message}`;
                 }
             } catch (err) { resDiv.innerHTML = 'Network Error.'; }
         }
-
-        updateDashboard();
-        setInterval(updateDashboard, 60000);
     </script>
 </body>
 </html>

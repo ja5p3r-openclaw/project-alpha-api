@@ -10,6 +10,39 @@ import os
 
 from fastapi.openapi.docs import get_swagger_ui_html
 
+from pydantic import BaseModel
+import secrets
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+    pin: str = None
+
+# Simulated DB
+USERS = {
+    "ja5p3r": {"password": "password123", "plan": "OBSIDIAN", "api_key": "MASTER_JASPER_KEY", "2fa_secret": "123456"}
+}
+
+@app.post("/api/v1/auth/login")
+async def login(req: LoginRequest):
+    user = USERS.get(req.username)
+    if not user or user["password"] != req.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not req.pin:
+        # Simulate sending 2FA
+        return {"status": "need_2fa", "debug_pin": user["2fa_secret"]}
+    
+    if req.pin != user["2fa_secret"]:
+        raise HTTPException(status_code=401, detail="Invalid 2FA PIN")
+    
+    return {
+        "status": "success",
+        "username": req.username,
+        "plan": user["plan"],
+        "api_key": user["api_key"]
+    }
+
 # --- SECURITY SHIELD ---
 # In production, these would be in a database.
 API_KEYS = {
@@ -37,23 +70,11 @@ def check_access(user_plan: str, required_level: int):
 
 description = """
 ### 🚀 Project Alpha: Enterprise Business Intelligence
-The most robust Market Data Engine for the Indian Economy.
-
----
-
-### 💳 Subscription Tiers
-| Tier | Price/mo | Quota | Access Level |
-| :--- | :--- | :--- | :--- |
-| **FREE** | ₹0 | 50 req | Basic (Forex, Mandi) |
-| **GOLD** | ₹60 | 150 req | Intermediate (Basic + GST) |
-| **DIAMOND** | ₹1,000 | 5,000 req | Advance (All features) |
-| **OBSIDIAN** | Custom | Custom | Pro (SLA + Priority) |
-
----
+The most robust Market Data Engine for the Indian Economy. Access real-time Mandi, Forex, and GST data with high precision.
 """
 
 app = FastAPI(
-    title="Indian Business Data API (Brother Edition)",
+    title="Project Alpha API",
     description=description,
     version="1.0.0-beta",
     docs_url=None, 
@@ -66,26 +87,14 @@ async def favicon():
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
-    html = get_swagger_ui_html(
+    return get_swagger_ui_html(
         openapi_url=app.openapi_url,
-        title=app.title + " - Documentation",
+        title="Project Alpha | API Documentation",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
         swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+        swagger_favicon_url="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>"
     )
-    # Inject custom dark theme CSS into the body
-    custom_css = """
-    <style>
-        body { background-color: #030712 !important; color: #f8fafc !important; font-family: 'Outfit', sans-serif !important; }
-        .swagger-ui { filter: invert(88%) hue-rotate(180deg); }
-        .swagger-ui .topbar { display: none; }
-        .swagger-ui .info .title { color: #000 !important; }
-        .swagger-ui .scheme-container { background: transparent !important; }
-    </style>
-    """
-    new_content = html.body.decode().replace("</body>", custom_css + "</body>")
-    return HTMLResponse(content=new_content)
 
 # Load dashboard template
 DASHBOARD_HTML = ""
