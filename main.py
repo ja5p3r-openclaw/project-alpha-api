@@ -92,30 +92,80 @@ async def ocr_pdf(file: UploadFile = File(...)):
     except Exception as e:
         return {"status": "error", "message": "OCR Engine error. Ensure 'tesseract-ocr' and 'poppler-utils' are installed on host."}
 
+def validate_gstin_checksum(gstin: str) -> bool:
+    """Robust Modulus 36 checksum validation for Indian GSTIN."""
+    if len(gstin) != 15:
+        return False
+    
+    chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    char_to_val = {char: i for i, char in enumerate(chars)}
+    
+    try:
+        # Check first 14 characters
+        sum_val = 0
+        for i in range(14):
+            val = char_to_val[gstin[i]]
+            factor = 2 if (i % 2 == 1) else 1
+            product = val * factor
+            sum_val += (product // 36) + (product % 36)
+        
+        check_digit_idx = (36 - (sum_val % 36)) % 36
+        expected_checksum = chars[check_digit_idx]
+        return gstin[14] == expected_checksum
+    except (KeyError, IndexError):
+        return False
+
 @app.get("/api/v1/gst/verify/{gstin}")
 async def verify_gst(gstin: str):
-    # This is a critical endpoint for B2B trust.
-    # We implement high-level validation logic.
-    # In production, this would hit the GSTN portal or a proxy like Karza/Razorpay.
+    gstin = gstin.upper().strip()
+    
     if len(gstin) != 15:
-        return {"status": "error", "message": "Invalid GSTIN length. Must be 15 characters."}
+        return {"status": "error", "message": "Invalid length. GSTIN must be 15 characters."}
     
-    # Simple check for state code (first 2 digits)
+    # 1. Basic Format Check (Regex-like)
+    # 2 digits + 10 alphanumeric (PAN) + 1 digit + 1 char + 1 char
     state_code = gstin[:2]
+    pan = gstin[2:12]
+    entity_code = gstin[12]
+    z_char = gstin[13]
+    checksum = gstin[14]
+
     if not state_code.isdigit():
-        return {"status": "error", "message": "Invalid state code in GSTIN."}
+        return {"status": "error", "message": "Invalid state code. First 2 digits must be numbers."}
     
+    if z_char != 'Z':
+        return {"status": "error", "message": "Invalid format. 14th character must be 'Z'."}
+
+    # 2. Checksum Validation (The "Real" Logic)
+    is_valid_checksum = validate_gstin_checksum(gstin)
+    
+    if not is_valid_checksum:
+        return {
+            "status": "error", 
+            "message": "Checksum validation failed. This GSTIN is mathematically invalid.",
+            "details": {
+                "gstin": gstin,
+                "state_code": state_code,
+                "pan_extracted": pan
+            }
+        }
+
     return {
         "status": "success",
         "gstin": gstin,
         "valid": True,
-        "details": {
-            "business_name": "Simulated Entity",
+        "analysis": {
             "state_code": state_code,
-            "status": "Active",
-            "type": "Regular"
+            "pan": pan,
+            "entity_number": entity_code,
+            "checksum_verified": True
         },
-        "note": "Production version requires GSTN portal integration."
+        "details": {
+            "business_name": "Verified Structure",
+            "status": "Active (Mathematical)",
+            "type": "Regular/Composition"
+        },
+        "note": "GSTIN structure and checksum verified. Real-time portal status requires API key integration."
     }
 
 @app.get("/", response_class=HTMLResponse)
