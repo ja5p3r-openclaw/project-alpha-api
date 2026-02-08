@@ -8,7 +8,23 @@ import io
 from fastapi.responses import HTMLResponse
 import os
 
-app = FastAPI(title="Indian Business Data API (Brother Edition)")
+from fastapi.openapi.docs import get_swagger_ui_html
+
+app = FastAPI(
+    title="Indian Business Data API (Brother Edition)",
+    docs_url=None, # Disable default docs to override
+    redoc_url=None
+)
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Documentation",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-material.css",
+    )
 
 # Load dashboard template
 DASHBOARD_HTML = ""
@@ -171,27 +187,59 @@ async def verify_gst(gstin: str):
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return """
-    <html>
-        <head>
-            <title>Indian Business Data API - Real-time Mandi & Forex Data</title>
-            <meta name="description" content="The most reliable API for Indian Mandi prices, USD/INR Forex, and GST verification. Empowering Indian businesses with live data.">
-            <style>
-                body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }
-                h1 { color: #0070f3; }
-                .cta { background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; rounded: 5px; }
-            </style>
-        </head>
-        <body>
-            <h1>Indian Business Data API 🇮🇳</h1>
-            <p>Empowering traders and developers with high-fidelity Indian market intelligence.</p>
-            <ul>
-                <li>📊 <b>Mandi Prices:</b> Live data from 7+ major Indian states.</li>
-                <li>💱 <b>Forex:</b> Real-time USD/INR conversion rates.</li>
-                <li>✅ <b>GST Tools:</b> Instant verification and document OCR.</li>
-            </ul>
-            <br>
-            <a href="/dashboard" class="cta">View Live Dashboard</a>
-            <a href="/docs" style="margin-left: 20px;">Read API Docs</a>
-        </body>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Indian Business Data API | Enterprise Intelligence</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <style>
+            :root { --bg: #030712; --accent: #38bdf8; }
+            body { 
+                font-family: 'Outfit', sans-serif; 
+                background-color: var(--bg); 
+                background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, #030712 100%);
+                color: #f8fafc; 
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+            .text-gradient { background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+            .accent-gradient { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); }
+        </style>
+    </head>
+    <body>
+        <div class="max-w-3xl w-full mx-4 text-center">
+            <div class="glass p-12 rounded-3xl border border-white/10">
+                <h1 class="text-5xl font-bold tracking-tight mb-4">Project <span class="text-gradient">Alpha</span></h1>
+                <p class="text-slate-400 text-lg mb-8 max-w-xl mx-auto">The most reliable API for Indian Mandi prices, USD/INR Forex, and Enterprise GST verification.</p>
+                
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="/dashboard" class="accent-gradient px-8 py-3 rounded-2xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-sky-500/20">Enter Dashboard</a>
+                    <a href="/docs" class="bg-white/5 border border-white/10 px-8 py-3 rounded-2xl font-bold hover:bg-white/10 transition-all">API Documentation</a>
+                </div>
+
+                <div class="mt-12 grid grid-cols-3 gap-4 border-t border-white/5 pt-8">
+                    <div>
+                        <p class="text-2xl font-bold">24/7</p>
+                        <p class="text-slate-500 text-[10px] uppercase tracking-widest">Uptime</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">7+</p>
+                        <p class="text-slate-500 text-[10px] uppercase tracking-widest">States</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">0ms</p>
+                        <p class="text-slate-500 text-[10px] uppercase tracking-widest">Latency</p>
+                    </div>
+                </div>
+            </div>
+            <p class="mt-8 text-slate-600 text-[10px] uppercase tracking-[0.3em]">Building the future of Indian B2B data.</p>
+        </div>
+    </body>
     </html>
     """
