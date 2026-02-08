@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Alpha Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .accent-gradient { background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">Project Alpha <span class="text-sky-400">Dashboard</span></h1>
+                <p class="text-slate-400">Live Indian Market Intelligence Engine</p>
+            </div>
+            <div class="hidden md:block">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20">System Live</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Forex Card -->
+            <div class="lg:col-span-1 glass rounded-2xl p-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center">
+                    <span class="mr-2">💵</span> Forex (USD/INR)
+                </h2>
+                <div id="forex-content" class="animate-pulse">
+                    <div class="h-12 bg-slate-700/50 rounded-lg mb-2"></div>
+                    <div class="h-4 bg-slate-700/50 rounded w-1/2"></div>
+                </div>
+            </div>
+
+            <!-- Mandi Card -->
+            <div class="lg:col-span-2 glass rounded-2xl p-6">
+                <h2 class="text-lg font-semibold mb-4 flex items-center">
+                    <span class="mr-2">🌾</span> Mandi Snapshot
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-slate-400 border-b border-slate-700">
+                            <tr>
+                                <th class="pb-3 px-2">Commodity</th>
+                                <th class="pb-3 px-2">State</th>
+                                <th class="pb-3 px-2 text-right">Price (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mandi-body">
+                            <!-- Rows will be injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer / API Stats -->
+        <footer class="mt-10 pt-6 border-t border-slate-800 text-center text-slate-500 text-xs">
+            <p>Powered by Project Alpha API Engine • Version 1.0.0-beta</p>
+        </header>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function updateDashboard() {
+            try {
+                // Fetch Forex
+                const fxRes = await fetch(`${API_BASE}/api/v1/forex/usd-inr`);
+                const fxData = await fxRes.json();
+                const forexDiv = document.getElementById('forex-content');
+                if (fxData.status === 'success') {
+                    forexDiv.classList.remove('animate-pulse');
+                    forexDiv.innerHTML = `
+                        <div class="text-4xl font-bold text-white mb-1">₹${fxData.data.rate}</div>
+                        <div class="text-xs text-slate-400">Last updated: ${fxData.data.date}</div>
+                    `;
+                }
+
+                // Fetch Mandi
+                const mandiRes = await fetch(`${API_BASE}/api/v1/mandi/snapshot`);
+                const mandiData = await mandiRes.json();
+                const mandiBody = document.getElementById('mandi-body');
+                if (mandiData.status === 'success') {
+                    mandiBody.innerHTML = mandiData.data.map(item => `
+                        <tr class="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
+                            <td class="py-3 px-2 font-medium">${item.commodity}</td>
+                            <td class="py-3 px-2 text-slate-400">${item.state}</td>
+                            <td class="py-3 px-2 text-right font-semibold text-sky-400">${item.modal_price}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error("Dashboard update failed:", err);
+            }
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 60000); // Refresh every minute
+    </script>
+</body>
+</html>

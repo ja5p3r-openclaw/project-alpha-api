@@ -18,10 +18,11 @@ Developed by Pi (AI) for Jasper.
 ## Deployment
 - **Local Development**: Laptop (Current)
 - **Production Goal**: Render/Koyeb (Dockerized)
-- **Repo Status**: Prepared for Git push.
+- **Production URL**: https://project-alpha-api.onrender.com
+- **OpenAPI Spec**: Generated (openapi.json)
 
 ## Next Steps
-1. Push code to GitHub.
-2. Connect Render/Koyeb to GitHub.
+1. Setup RapidAPI project with `openapi.json`.
+2. Monetize: Set pricing tiers (Free, Pro, Ultra).
 3. Scale Mandi data and add GST verification.
 

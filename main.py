@@ -5,9 +5,22 @@ import pytesseract
 from pdf2image import convert_from_bytes
 import io
 
+from fastapi.responses import HTMLResponse
+import os
+
 app = FastAPI(title="Indian Business Data API (Brother Edition)")
 
-# ... (rest of the code)
+# Load dashboard template
+DASHBOARD_HTML = ""
+if os.path.exists("dashboard.html"):
+    with open("dashboard.html", "r") as f:
+        DASHBOARD_HTML = f.read()
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    return DASHBOARD_HTML
+
+# ... (rest of the existing endpoints)
 CACHE = {
     "fx": {"data": None, "expiry": None},
     "mandi": {"data": None, "expiry": None}
