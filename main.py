@@ -53,10 +53,12 @@ async def mandi_snapshot():
     # In a real production environment, we would use data.gov.in API keys 
     # or a robust scraper. For this MVP expansion, we provide a high-fidelity 
     # simulated real-time feed across major Indian states.
+    # ADDING SEO KEYWORDS TO METADATA
     return {
         "status": "success",
         "timestamp": str(datetime.datetime.now()),
         "source": "Agmarknet-Simulated-Live",
+        "keywords": ["Indian Mandi API", "Wheat Prices Today", "Rice Market Data India"],
         "data": [
             {"commodity": "Wheat", "state": "UP", "district": "Lucknow", "mandi": "Lucknow", "modal_price": 2550, "unit": "Quintal", "arrival_date": "08/02/2026"},
             {"commodity": "Rice", "state": "Punjab", "district": "Amritsar", "mandi": "Amritsar", "modal_price": 3200, "unit": "Quintal", "arrival_date": "08/02/2026"},
