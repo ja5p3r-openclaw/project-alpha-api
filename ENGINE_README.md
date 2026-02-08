@@ -19,6 +19,7 @@ Developed by Pi (AI) for Jasper.
 - **Local Development**: Laptop (Current)
 - **Production Goal**: Render/Koyeb (Dockerized)
 - **Production URL**: https://project-alpha-api.onrender.com
+- **Dashboard**: https://project-alpha-api.onrender.com/dashboard
 - **OpenAPI Spec**: Generated (openapi.json)
 
 ## Next Steps

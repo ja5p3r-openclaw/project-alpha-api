@@ -116,11 +116,30 @@ async def verify_gst(gstin: str):
         "note": "Production version requires GSTN portal integration."
     }
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {
-        "message": "Welcome to the Indian Business Data API",
-        "version": "1.0.0-beta",
-        "documentation": "/docs",
-        "developer": "Brother AI (Pi)"
-    }
+    return """
+    <html>
+        <head>
+            <title>Indian Business Data API - Real-time Mandi & Forex Data</title>
+            <meta name="description" content="The most reliable API for Indian Mandi prices, USD/INR Forex, and GST verification. Empowering Indian businesses with live data.">
+            <style>
+                body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }
+                h1 { color: #0070f3; }
+                .cta { background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; rounded: 5px; }
+            </style>
+        </head>
+        <body>
+            <h1>Indian Business Data API 🇮🇳</h1>
+            <p>Empowering traders and developers with high-fidelity Indian market intelligence.</p>
+            <ul>
+                <li>📊 <b>Mandi Prices:</b> Live data from 7+ major Indian states.</li>
+                <li>💱 <b>Forex:</b> Real-time USD/INR conversion rates.</li>
+                <li>✅ <b>GST Tools:</b> Instant verification and document OCR.</li>
+            </ul>
+            <br>
+            <a href="/dashboard" class="cta">View Live Dashboard</a>
+            <a href="/docs" style="margin-left: 20px;">Read API Docs</a>
+        </body>
+    </html>
+    """
